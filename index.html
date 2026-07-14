@@ -82,12 +82,7 @@
   <h2>Дополнительно</h2>
   <div id="opts"></div>
 
-  <h2>Пара слов о задаче</h2>
-  <textarea id="task" placeholder="Своими словами: что должно получиться"></textarea>
-
-  <h2>Как с вами связаться</h2>
-  <input type="text" id="contact" placeholder="Телефон, @ник или почта (или напишу здесь, в боте)">
-  <div class="note">Итог: ориентир для старта разговора, не оферта. Точную цену назову после уточнения задачи.</div>
+  <div class="note">Итог: ориентир для старта разговора, не оферта. После нажатия кнопки вернётесь в бота, он уточнит детали задачи и контакт.</div>
 
   <div class="total">
     <div>
@@ -155,25 +150,12 @@
   }
 
   tg.MainButton.onClick(() => {
-    const data = {
-      type: TYPES.find(x => x.id === typeId).t,
-      options: OPTS.filter(x => picked.has(x.id)).map(x => x.name),
-      estimate: total(),
-      task: document.getElementById("task").value.trim(),
-      contact: document.getElementById("contact").value.trim(),
-    };
-
-    // Запуск с кнопки клавиатуры: заявка уходит напрямую (sendData закрывает приложение)
-    try { tg.sendData(JSON.stringify(data)); } catch (e) { /* не тот контекст запуска */ }
-
-    // Запуск через кнопку меню: sendData недоступен, возвращаемся в бота deep-link'ом
-    setTimeout(() => {
-      let mask = 0;
-      OPTS.forEach((x, i) => { if (picked.has(x.id)) mask |= (1 << i); });
-      const payload = ["c", typeId, mask, total()].join("-");
-      tg.openTelegramLink("https://t.me/PavelDevDemoBot?start=" + payload);
-      tg.close();
-    }, 400);
+    // Возврат в бота deep-link'ом: бот покажет расчёт и уточнит детали диалогом
+    let mask = 0;
+    OPTS.forEach((x, i) => { if (picked.has(x.id)) mask |= (1 << i); });
+    const payload = ["c", typeId, mask, total()].join("-");
+    tg.openTelegramLink("https://t.me/PavelDevDemoBot?start=" + payload);
+    tg.close();
   });
 
   recalc();
