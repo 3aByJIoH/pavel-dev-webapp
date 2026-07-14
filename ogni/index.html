@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Огни Адыгеи — собрать шоу</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: #16120f;
+    --card: #241d17;
+    --card2: #2c231b;
+    --text: #f5ede2;
+    --hint: #a8988a;
+    --accent: #ff8a2a;
+    --accent-dim: #b35b17;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(ellipse at 50% -20%, #3a2413 0%, var(--bg) 55%);
+    color: var(--text);
+    padding: 18px 16px 100px;
+  }
+  h1 { font-size: 22px; letter-spacing: .5px; }
+  .sub { color: var(--hint); font-size: 14px; margin: 4px 0 18px; }
+  h2 { font-size: 15px; margin: 20px 0 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; }
+  .prog {
+    background: var(--card);
+    border: 2px solid transparent;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color .15s;
+  }
+  .prog.active { border-color: var(--accent); background: var(--card2); }
+  .prog .head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .prog .t { font-weight: 700; font-size: 16px; }
+  .prog .p { color: var(--accent); font-weight: 700; white-space: nowrap; }
+  .prog .d { color: var(--hint); font-size: 13px; margin-top: 6px; line-height: 1.45; }
+  .opt {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--card);
+    border-radius: 12px;
+    padding: 11px 12px;
+    margin-bottom: 7px;
+    cursor: pointer;
+  }
+  .opt input { width: 18px; height: 18px; accent-color: var(--accent); flex-shrink: 0; }
+  .opt .name { flex: 1; font-size: 14px; }
+  .opt .price { color: var(--hint); font-size: 13px; white-space: nowrap; }
+  textarea, input[type=text] {
+    width: 100%;
+    background: var(--card);
+    color: var(--text);
+    border: none;
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: none;
+    margin-bottom: 8px;
+  }
+  textarea { min-height: 64px; }
+  .note { color: var(--hint); font-size: 12px; margin-top: 6px; }
+  .total {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    background: rgba(22,18,15,.97);
+    border-top: 1px solid #3a2e22;
+    padding: 12px 16px;
+  }
+  .total .label { color: var(--hint); font-size: 13px; }
+  .total .sum { font-size: 20px; font-weight: 700; color: var(--accent); }
+</style>
+</head>
+<body>
+  <h1>🔥 Огни Адыгеи</h1>
+  <div class="sub">Соберите своё огненное шоу и получите ориентир цены</div>
+
+  <h2>Программа</h2>
+  <div id="programs"></div>
+
+  <h2>Инсталляции и допы</h2>
+  <div id="extras"></div>
+
+  <h2>О событии</h2>
+  <textarea id="event" placeholder="Что за праздник, где и когда (примерно)"></textarea>
+  <input type="text" id="contact" placeholder="Телефон или ник в Telegram для ответа">
+  <div class="note">Итог — ориентир. Точную смету подтверждаем после уточнения площадки. Выезд по Майкопу бесплатно, предоплата 50%.</div>
+
+  <div class="total">
+    <div class="label">Ориентир стоимости</div>
+    <div class="sum" id="sum">10 000 ₽</div>
+  </div>
+
+<script>
+  const tg = window.Telegram.WebApp;
+  tg.ready();
+  tg.expand();
+  const BOT_USERNAME = "OgniAdygeiBot";
+
+  const PROGRAMS = [
+    { id: "classic", t: "Соло «Классика»", price: 10000,
+      d: "1 артист, 2 вида реквизита, пиро-финал. 4-5 минут живого огня рядом со зрителями." },
+    { id: "vostok", t: "Соло «Восток»", price: 12000,
+      d: "1 артист, огнемёты, смена ритма, эффектная кульминация. 5-6 минут." },
+    { id: "duet", t: "Дуэт", price: 20000,
+      d: "2 артиста, синхронная хореография, 4 вида реквизита, 2 вида пиротехники. 10-12 минут." },
+  ];
+  const EXTRAS = [
+    { id: "hearts",   name: "Огненные сердца + 2 фонтана",        price: 5000,  from: false },
+    { id: "alley",    name: "Огненная аллея + сердца + 2 фонтана", price: 10000, from: false },
+    { id: "symbols",  name: "Огненные символы (цифры, буквы)",     price: 1000,  from: true  },
+    { id: "logo",     name: "Огненный логотип 2×2 м",              price: 10000, from: false },
+    { id: "bowls",    name: "Аллея огненных чаш",                  price: 5000,  from: false },
+    { id: "pyro",     name: "Пиро-аллея от 8 фонтанов",            price: 8000,  from: true  },
+    { id: "falls",    name: "Водопады: стена искр",                price: 6000,  from: true  },
+    { id: "lotus",    name: "Вертушки «Лотосы»",                   price: 2500,  from: true  },
+    { id: "smoke",    name: "Тяжёлый дым",                         price: 12000, from: false },
+  ];
+
+  let progId = "classic";
+  const picked = new Set();
+
+  const progEl = document.getElementById("programs");
+  PROGRAMS.forEach(p => {
+    const d = document.createElement("div");
+    d.className = "prog" + (p.id === progId ? " active" : "");
+    d.innerHTML = `<div class="head"><span class="t">${p.t}</span><span class="p">${p.price.toLocaleString("ru-RU")} ₽</span></div><div class="d">${p.d}</div>`;
+    d.onclick = () => {
+      progId = p.id;
+      document.querySelectorAll(".prog").forEach(c => c.classList.remove("active"));
+      d.classList.add("active");
+      recalc();
+    };
+    progEl.appendChild(d);
+  });
+
+  const extrasEl = document.getElementById("extras");
+  EXTRAS.forEach(x => {
+    const l = document.createElement("label");
+    l.className = "opt";
+    l.innerHTML = `<input type="checkbox"><span class="name">${x.name}</span><span class="price">${x.from ? "от " : "+"}${x.price.toLocaleString("ru-RU")} ₽</span>`;
+    l.querySelector("input").onchange = (e) => {
+      e.target.checked ? picked.add(x.id) : picked.delete(x.id);
+      recalc();
+    };
+    extrasEl.appendChild(l);
+  });
+
+  function total() {
+    const base = PROGRAMS.find(p => p.id === progId).price;
+    return base + EXTRAS.filter(x => picked.has(x.id)).reduce((s, x) => s + x.price, 0);
+  }
+
+  function recalc() {
+    const t = "от " + total().toLocaleString("ru-RU") + " ₽";
+    document.getElementById("sum").textContent = t;
+    tg.MainButton.setText("Оставить заявку · " + t);
+    tg.MainButton.setParams({ color: "#ff8a2a", text_color: "#1a1208" });
+    tg.MainButton.show();
+  }
+
+  tg.MainButton.onClick(() => {
+    const data = {
+      program: PROGRAMS.find(p => p.id === progId).t,
+      extras: EXTRAS.filter(x => picked.has(x.id)).map(x => x.name),
+      estimate: total(),
+      event: document.getElementById("event").value.trim(),
+      contact: document.getElementById("contact").value.trim(),
+    };
+
+    try { tg.sendData(JSON.stringify(data)); } catch (e) { /* запуск не с клавиатурной кнопки */ }
+
+    setTimeout(() => {
+      let mask = 0;
+      EXTRAS.forEach((x, i) => { if (picked.has(x.id)) mask |= (1 << i); });
+      const payload = ["c", progId, mask, total()].join("-");
+      tg.openTelegramLink("https://t.me/" + BOT_USERNAME + "?start=" + payload);
+      tg.close();
+    }, 400);
+  });
+
+  recalc();
+</script>
+</body>
+</html>
