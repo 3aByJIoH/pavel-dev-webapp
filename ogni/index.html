@@ -84,10 +84,7 @@
   <h2>Инсталляции и допы</h2>
   <div id="extras"></div>
 
-  <h2>О событии</h2>
-  <textarea id="event" placeholder="Что за праздник, где и когда (примерно)"></textarea>
-  <input type="text" id="contact" placeholder="Телефон или ник в Telegram для ответа">
-  <div class="note">Итог — ориентир. Точную смету подтверждаем после уточнения площадки. Выезд по Майкопу бесплатно, предоплата 50%.</div>
+  <div class="note">Итог — ориентир. Точную смету подтверждаем после уточнения площадки. Выезд по Майкопу бесплатно, предоплата 50%. После нажатия кнопки вернётесь в бота, он спросит про событие и контакт.</div>
 
   <div class="total">
     <div class="label">Ориентир стоимости</div>
@@ -163,23 +160,12 @@
   }
 
   tg.MainButton.onClick(() => {
-    const data = {
-      program: PROGRAMS.find(p => p.id === progId).t,
-      extras: EXTRAS.filter(x => picked.has(x.id)).map(x => x.name),
-      estimate: total(),
-      event: document.getElementById("event").value.trim(),
-      contact: document.getElementById("contact").value.trim(),
-    };
-
-    try { tg.sendData(JSON.stringify(data)); } catch (e) { /* запуск не с клавиатурной кнопки */ }
-
-    setTimeout(() => {
-      let mask = 0;
-      EXTRAS.forEach((x, i) => { if (picked.has(x.id)) mask |= (1 << i); });
-      const payload = ["c", progId, mask, total()].join("-");
-      tg.openTelegramLink("https://t.me/" + BOT_USERNAME + "?start=" + payload);
-      tg.close();
-    }, 400);
+    // Возврат в бота deep-link'ом: бот покажет сборку и спросит про событие и контакт
+    let mask = 0;
+    EXTRAS.forEach((x, i) => { if (picked.has(x.id)) mask |= (1 << i); });
+    const payload = ["c", progId, mask, total()].join("-");
+    tg.openTelegramLink("https://t.me/" + BOT_USERNAME + "?start=" + payload);
+    tg.close();
   });
 
   recalc();
