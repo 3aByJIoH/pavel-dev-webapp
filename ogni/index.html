@@ -104,13 +104,15 @@
       d: "1 артист, огнемёты, смена ритма, эффектная кульминация. 5-6 минут." },
     { id: "duet", t: "Дуэт", price: 20000,
       d: "2 артиста, синхронная хореография, 4 вида реквизита, 2 вида пиротехники. 10-12 минут." },
+    { id: "none", t: "Без программы", price: 0,
+      d: "Только инсталляции и оформление: сердца, аллеи, символы. Шоу-номер не нужен." },
   ];
   const EXTRAS = [
     { id: "hearts",   name: "Огненные сердца + 2 фонтана",        price: 5000,  from: false },
     { id: "alley",    name: "Огненная аллея + сердца + 2 фонтана", price: 10000, from: false },
     { id: "symbols",  name: "Огненные символы (цифры, буквы)",     price: 1000,  from: true  },
     { id: "logo",     name: "Огненный логотип 2×2 м",              price: 10000, from: false },
-    { id: "bowls",    name: "Аллея огненных чаш",                  price: 5000,  from: false },
+    { id: "bowls",    name: "Романтическая аллея (огненные чаши)", price: 10000, from: false },
     { id: "pyro",     name: "Пиро-аллея от 8 фонтанов",            price: 8000,  from: true  },
     { id: "falls",    name: "Водопады: стена искр",                price: 6000,  from: true  },
     { id: "lotus",    name: "Вертушки «Лотосы»",                   price: 2500,  from: true  },
@@ -152,14 +154,22 @@
   }
 
   function recalc() {
-    const t = "от " + total().toLocaleString("ru-RU") + " ₽";
-    document.getElementById("sum").textContent = t;
-    tg.MainButton.setText("Оставить заявку · " + t);
-    tg.MainButton.setParams({ color: "#ff8a2a", text_color: "#1a1208" });
+    const v = total();
+    const below = v < 5000;
+    const t = "от " + Math.max(v, 5000).toLocaleString("ru-RU") + " ₽";
+    document.getElementById("sum").textContent = below ? t + " (мин. заказ)" : t;
+    if (v === 0) {
+      tg.MainButton.setText("Выберите программу или инсталляции");
+      tg.MainButton.setParams({ color: "#5a4632", text_color: "#c9b8a5" });
+    } else {
+      tg.MainButton.setText("Оставить заявку · " + t);
+      tg.MainButton.setParams({ color: "#ff8a2a", text_color: "#1a1208" });
+    }
     tg.MainButton.show();
   }
 
   tg.MainButton.onClick(() => {
+    if (total() === 0) return;
     // Возврат в бота deep-link'ом: бот покажет сборку и спросит про событие и контакт
     let mask = 0;
     EXTRAS.forEach((x, i) => { if (picked.has(x.id)) mask |= (1 << i); });
