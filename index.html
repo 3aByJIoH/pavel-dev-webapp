@@ -162,11 +162,18 @@
       task: document.getElementById("task").value.trim(),
       contact: document.getElementById("contact").value.trim(),
     };
-    try {
-      tg.sendData(JSON.stringify(data));
-    } catch (e) {
-      tg.showAlert("Не получилось отправить. Откройте приложение через кнопку внизу чата с ботом.");
-    }
+
+    // Запуск с кнопки клавиатуры: заявка уходит напрямую (sendData закрывает приложение)
+    try { tg.sendData(JSON.stringify(data)); } catch (e) { /* не тот контекст запуска */ }
+
+    // Запуск через кнопку меню: sendData недоступен, возвращаемся в бота deep-link'ом
+    setTimeout(() => {
+      let mask = 0;
+      OPTS.forEach((x, i) => { if (picked.has(x.id)) mask |= (1 << i); });
+      const payload = ["c", typeId, mask, total()].join("-");
+      tg.openTelegramLink("https://t.me/PavelDevDemoBot?start=" + payload);
+      tg.close();
+    }, 400);
   });
 
   recalc();
